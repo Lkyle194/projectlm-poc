@@ -104,19 +104,36 @@ Gemma 4 E2B QAT Mobile — version **GGUF quantifié Q4** :
 
 **Recommandé pour Android :** La version Unsloth GGUF — compatible avec LLamaSharp.
 
-### Installation dans le projet
+## 📱 Modèle embarqué dans l'APK (Option 1 — Transparent)
+
+**Le modèle est inclus DANS l'APK.** Zéro action pour l'utilisateur :
+
+1. Télécharge le GGUF via le script
+2. Place-le dans `Assets/StreamingAssets/models/`
+3. Build l'APK — le modèle est inclus
+4. Au premier lancement sur Android, `ModelDeployer.cs` copie le fichier du dossier APK (StreamingAssets) vers le dossier privé de l'application (`persistentDataPath`)
+5. Quand l'utilisateur désinstalle, tout est supprimé
+
+> ⚠️ L'APK fera ~1.5 GB avec le modèle inclus. C'est dans la limite Google Play (4 GB max).
+
+### Installation du modèle dans le projet
 
 ```bash
 # Créer le dossier models
 mkdir -p Assets/StreamingAssets/models/
+touch Assets/StreamingAssets/models/.gitkeep
 
-# Télécharger le modèle (GGUF)
+# Télécharger le modèle (GGUF) - ~1.1 GB
+# Option A: Via le script
+./scripts/download-model.sh
+
+# Option B: Manuellement
 wget https://huggingface.co/unsloth/gemma-4-E2B-it-qat-mobile-GGUF/resolve/main/gemma-4-E2B-it-qat-mobile-Q4_0.gguf \
   -O Assets/StreamingAssets/models/gemma-4-E2B-it-qat-mobile-Q4_0.gguf
 ```
 
-> ⚠️ Le modèle fait ~1.1 GB. Vérifie que ton APK pourra contenir ce poids.
-> Option : proposer le téléchargement au premier lancement via un écran de chargement.
+> Le fichier .gguf est ignoré par git (trop volumineux). Chaque développeur doit le télécharger.
+> Le script `download-model.sh` s'en charge automatiquement.
 
 ---
 

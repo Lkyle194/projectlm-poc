@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.IO;
 using ProjectLM.LLM;
+using ProjectLM.Core;
 using UnityEngine;
 
 namespace ProjectLM.Game
@@ -29,6 +31,7 @@ namespace ProjectLM.Game
         private NodeSpawner _nodeSpawner;
         private RogueliteManager _rogueliteManager;
         private UIManager _uiManager;
+        private ModelDeployer _modelDeployer;
 
         // State
         private float _currentHealth;
@@ -59,6 +62,7 @@ namespace ProjectLM.Game
             _nodeSpawner = FindAnyObjectByType<NodeSpawner>();
             _rogueliteManager = FindAnyObjectByType<RogueliteManager>();
             _uiManager = FindAnyObjectByType<UIManager>();
+            _modelDeployer = FindAnyObjectByType<ModelDeployer>();
         }
 
         private async void Start()
@@ -68,7 +72,9 @@ namespace ProjectLM.Game
 
             if (useLLM)
             {
-                string modelPath = Application.streamingAssetsPath + "/models/" + modelFileName;
+                string modelPath = _modelDeployer != null
+                    ? _modelDeployer.GetModelPath()
+                    : Path.Combine(Application.streamingAssetsPath, "models", modelFileName);
                 Debug.Log($"[GameManager] Loading model: {modelPath}");
                 bool loaded = await _llmBridge.LoadModel(modelPath);
                 if (!loaded)

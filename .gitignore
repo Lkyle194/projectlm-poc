@@ -10,6 +10,7 @@ MemoryCaptures/
 # Assets/StreamingAssets/models/ - large model files
 Assets/StreamingAssets/models/*.gguf
 Assets/StreamingAssets/models/*.bin
+!Assets/StreamingAssets/models/.gitkeep
 
 # IDE
 .vs/
