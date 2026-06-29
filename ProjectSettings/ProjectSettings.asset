@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 27
+  productGUID: 2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d
+  AndroidTargetArchitecture: 2
+  AndroidMinSdkVersion: 34
+  AndroidTargetSdkVersion: 34
+  AndroidPreferredInstallLocation: 1
+  AndroidGamepadSupportLevel: 0
+  defaultScreenWidth: 1080
+  defaultScreenHeight: 1920
+  defaultScreenWidthWeb: 1080
+  defaultScreenHeightWeb: 1920
+  m_StereoRenderingPath: 0
+  m_ActiveColorSpace: 1
+  m_MTRendering: 1
+  androidEnableBanner: 0
+  m_StripEngineCode: 1
+  m_ScriptingBackend: 2
+  il2cppCompilerConfiguration: 1
+  managedStrippingLevel: 1
+  companyName: ProjectLM
+  productName: ProjectLM POC
+  applicationIdentifier:
+    Android: com.ProjectLM.POC
+  bundleVersion: 0.1.0
+  AndroidBundleVersionCode: 1
+  configuration: 0
+  installInBuildFolder: 0
