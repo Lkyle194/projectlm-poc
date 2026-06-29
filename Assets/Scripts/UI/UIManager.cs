@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using ProjectLM.LLM;
 using ProjectLM.Core;
+using ProjectLM.Game;
 
 namespace ProjectLM.UI
 {
