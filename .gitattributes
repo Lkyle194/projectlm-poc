@@ -1,0 +1,30 @@
+# Unity
+*.unity text=true
+*.cs text=true
+*.shader text=true
+*.mat text=false
+*.asset text=false
+*.prefab text=false
+*.anim text=false
+*.controller text=false
+*.overrideController text=false
+*.mask text=false
+*.renderTexture text=false
+*.spriteAtlas text=false
+
+# Images
+*.png text=false
+*.jpg text=false
+*.jpeg text=false
+*.gif text=false
+*.psd text=false
+*.tga text=false
+
+# Audio
+*.wav text=false
+*.mp3 text=false
+*.ogg text=false
+
+# Models
+*.fbx text=false
+*.blend text=false
