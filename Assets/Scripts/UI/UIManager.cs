@@ -9,173 +9,292 @@ namespace ProjectLM.UI
 {
     /// <summary>
     /// Manages all UI panels and transitions.
-    /// Works with Unity Canvas + TextMeshPro.
+    /// Auto-discovers all UI elements by name — zero inspector setup needed.
     /// </summary>
     public class UIManager : MonoBehaviour
     {
-        [Header("Screens")]
-        [SerializeField] private GameObject titleScreen;
-        [SerializeField] private GameObject gameScreen;
-        [SerializeField] private GameObject gameOverScreen;
-        [SerializeField] private GameObject victoryScreen;
-        [SerializeField] private GameObject upgradeShopScreen;
+        // Screens
+        private GameObject _titleScreen;
+        private GameObject _gameScreen;
+        private GameObject _gameOverScreen;
+        private GameObject _victoryScreen;
+        private GameObject _upgradeShopScreen;
 
-        [Header("Game HUD")]
-        [SerializeField] private Image healthBar;
-        [SerializeField] private TMP_Text healthText;
-        [SerializeField] private TMP_Text resourcesText;
-        [SerializeField] private TMP_Text waveText;
-        [SerializeField] private TMP_Text waveAnnounceText;
-        [SerializeField] private Animator waveAnnounceAnimator;
+        // HUD
+        private Image _healthBarFill;
+        private TMP_Text _healthText;
+        private TMP_Text _resourcesText;
+        private TMP_Text _waveText;
+        private TMP_Text _waveAnnounceText;
+        private Animator _waveAnnounceAnimator;
 
-        [Header("LLM Unlock UI")]
-        [SerializeField] private GameObject unlockCard;
-        [SerializeField] private TMP_Text unlockNarrationText;
-        [SerializeField] private TMP_Text unlockNameText;
-        [SerializeField] private TMP_Text unlockDescriptionText;
-        [SerializeField] private TMP_Text unlockBehaviorText;
-        [SerializeField] private Animator unlockAnimator;
+        // LLM Unlock
+        private GameObject _unlockCard;
+        private TMP_Text _unlockNarrationText;
+        private TMP_Text _unlockNameText;
+        private TMP_Text _unlockDescriptionText;
+        private TMP_Text _unlockBehaviorText;
+        private Animator _unlockAnimator;
 
-        [Header("Behavior Display")]
-        [SerializeField] private RectTransform behaviorPanel;
-        [SerializeField] private Slider[] behaviorSliders; // 8 sliders for 8 axes
+        // Thinking
+        private GameObject _thinkingIndicator;
+        private TMP_Text _thinkingText;
 
-        [Header("Thinking Indicator")]
-        [SerializeField] private GameObject thinkingIndicator;
-        [SerializeField] private TMP_Text thinkingText;
+        // Game Over
+        private TMP_Text _gameOverWaveText;
+        private TMP_Text _gameOverTraitText;
+        private TMP_Text _gameOverEssenceText;
 
-        [Header("Game Over")]
-        [SerializeField] private TMP_Text gameOverWaveText;
-        [SerializeField] private TMP_Text gameOverTraitText;
-        [SerializeField] private TMP_Text gameOverEssenceText;
+        // Victory
+        private TMP_Text _victoryTraitText;
+        private TMP_Text _victoryEssenceText;
 
-        [Header("Victory")]
-        [SerializeField] private TMP_Text victoryTraitText;
-        [SerializeField] private TMP_Text victoryEssenceText;
+        // Shop
+        private Transform _upgradeContainer;
+        private TMP_Text _essenceTotalText;
 
-        [Header("Upgrade Shop")]
-        [SerializeField] private Transform upgradeContainer;
-        [SerializeField] private GameObject upgradeItemPrefab;
-        [SerializeField] private TMP_Text essenceTotalText;
+        // Audio (optional — loaded from Resources)
+        private AudioSource _audioSource;
+        private AudioClip _clickSound;
+        private AudioClip _unlockSound;
+        private AudioClip _waveStartSound;
+        private AudioClip _gameOverSound;
 
-        [Header("Audio")]
-        [SerializeField] private AudioSource audioSource;
-        [SerializeField] private AudioClip clickSound;
-        [SerializeField] private AudioClip unlockSound;
-        [SerializeField] private AudioClip waveStartSound;
-        [SerializeField] private AudioClip gameOverSound;
-
+        // Systems
         private BehaviorObserver _observer;
         private RogueliteManager _rogueliteManager;
+
+        // Enemy
+        private TMP_Text _enemyNameText;
+        private Image _enemyHealthBar;
+
+        private void Awake()
+        {
+            DiscoverAllUI();
+        }
 
         private void Start()
         {
             _observer = FindAnyObjectByType<BehaviorObserver>();
             _rogueliteManager = FindAnyObjectByType<RogueliteManager>();
-
+            LoadAudio();
             ShowTitleScreen();
         }
 
         private void Update()
         {
-            // Update behavior sliders in real-time if visible
-            if (behaviorPanel != null && behaviorPanel.gameObject.activeInHierarchy && _observer != null)
+            // Behavior panel update — disabled for now (no sliders in scene)
+        }
+
+        // ======================================================================
+        // AUTO-DISCOVERY: Finds all UI elements by GameObject name
+        // ======================================================================
+        private void DiscoverAllUI()
+        {
+            // Helper: find GO by name, get component
+            GameObject G(string n) => GameObject.Find(n);
+            
+            // Helper: find child by name path
+            Transform C(Transform parent, string childName)
             {
-                UpdateBehaviorSliders();
+                if (parent == null) return null;
+                foreach (Transform t in parent)
+                {
+                    if (t.name == childName) return t;
+                    var deeper = C(t, childName);
+                    if (deeper != null) return deeper;
+                }
+                return null;
+            }
+
+            // Screens
+            _titleScreen = G("TitleScreen");
+            _gameScreen = G("GameScreen");
+            _gameOverScreen = G("GameOverScreen");
+            _victoryScreen = G("VictoryScreen");
+            _upgradeShopScreen = G("UpgradeShop");
+
+            // HUD
+            var hbBg = G("HealthBarBg");
+            if (hbBg)
+            {
+                // Children of HealthBarBg
+                var fillT = C(hbBg.transform, "HealthBarFill");
+                _healthBarFill = fillT?.GetComponent<Image>();
+                var hpT = C(hbBg.transform, "HealthText");
+                _healthText = hpT?.GetComponent<TMP_Text>();
+            }
+            _resourcesText = G("ResourcesText")?.GetComponent<TMP_Text>();
+            _waveText = G("WaveText")?.GetComponent<TMP_Text>();
+
+            var announce = G("WaveAnnounce");
+            if (announce)
+            {
+                _waveAnnounceText = announce.GetComponent<TMP_Text>();
+                _waveAnnounceAnimator = announce.GetComponent<Animator>();
+            }
+
+            // LLM Unlock
+            _unlockCard = G("UnlockCard");
+            if (_unlockCard)
+            {
+                var t = _unlockCard.transform;
+                _unlockBehaviorText = C(t, "UnlockBehaviorText")?.GetComponent<TMP_Text>();
+                _unlockNameText = C(t, "UnlockNameText")?.GetComponent<TMP_Text>();
+                _unlockDescriptionText = C(t, "UnlockDescriptionText")?.GetComponent<TMP_Text>();
+                _unlockNarrationText = C(t, "UnlockNarrationText")?.GetComponent<TMP_Text>();
+                _unlockAnimator = _unlockCard.GetComponent<Animator>();
+            }
+
+            // Thinking
+            _thinkingIndicator = G("ThinkingIndicator");
+            if (_thinkingIndicator)
+                _thinkingText = _thinkingIndicator.GetComponent<TMP_Text>();
+
+            // Enemy info
+            var enemy = G("EnemyInfo");
+            if (enemy)
+            {
+                var t = enemy.transform;
+                _enemyNameText = C(t, "EnemyNameText")?.GetComponent<TMP_Text>();
+                _enemyHealthBar = C(t, "EnemyHealthBar")?.GetComponent<Image>();
+                // TimerText is also here but not used in code currently
+            }
+
+            // Game Over
+            var go = _gameOverScreen;
+            if (go)
+            {
+                var t = go.transform;
+                _gameOverWaveText = C(t, "GOWaveText")?.GetComponent<TMP_Text>();
+                _gameOverTraitText = C(t, "GOTraitText")?.GetComponent<TMP_Text>();
+                _gameOverEssenceText = C(t, "GOEssenceText")?.GetComponent<TMP_Text>();
+            }
+
+            // Victory
+            var vic = _victoryScreen;
+            if (vic)
+            {
+                var t = vic.transform;
+                _victoryTraitText = C(t, "VTraitText")?.GetComponent<TMP_Text>();
+                _victoryEssenceText = C(t, "VEssenceText")?.GetComponent<TMP_Text>();
+            }
+
+            // Shop
+            var shop = _upgradeShopScreen;
+            if (shop)
+            {
+                var t = shop.transform;
+                _essenceTotalText = C(t, "ShopEssenceTotal")?.GetComponent<TMP_Text>();
+                var cont = C(t, "UpgradeContainer");
+                _upgradeContainer = cont;
+            }
+
+            // AudioSource on this GameObject
+            _audioSource = GetComponent<AudioSource>();
+            if (_audioSource == null)
+            {
+                _audioSource = gameObject.AddComponent<AudioSource>();
+                _audioSource.volume = 0.5f;
             }
         }
+
+        private void LoadAudio()
+        {
+            // Try to load audio clips from Resources
+            _clickSound = Resources.Load<AudioClip>("Audio/click");
+            _unlockSound = Resources.Load<AudioClip>("Audio/unlock");
+            _waveStartSound = Resources.Load<AudioClip>("Audio/wave_start");
+            _gameOverSound = Resources.Load<AudioClip>("Audio/game_over");
+            
+            // If Resources load fails, try finding via type (null is fine, audio is optional)
+            if (_clickSound == null)
+                Debug.Log("[UIManager] Audio clips not found in Resources — game will run without audio");
+        }
+
+        // ======================================================================
+        // PUBLIC API
+        // ======================================================================
 
         public void ShowTitleScreen()
         {
             SetAllScreensOff();
-            if (titleScreen) titleScreen.SetActive(true);
+            if (_titleScreen) _titleScreen.SetActive(true);
         }
 
         public void ShowGameScreen()
         {
             SetAllScreensOff();
-            if (gameScreen) gameScreen.SetActive(true);
+            if (_gameScreen) _gameScreen.SetActive(true);
         }
 
         public void ShowGameOverScreen(int wave, string dominantTrait)
         {
             SetAllScreensOff();
-            if (gameOverScreen) gameOverScreen.SetActive(true);
-            if (gameOverWaveText) gameOverWaveText.text = $"Vague atteinte: {wave}";
-            if (gameOverTraitText) gameOverTraitText.text = $"Style: {dominantTrait}";
-            if (gameOverEssenceText) gameOverEssenceText.text = $"Essence: +{wave * 10}";
-
-            if (gameOverSound && audioSource) audioSource.PlayOneShot(gameOverSound);
+            if (_gameOverScreen) _gameOverScreen.SetActive(true);
+            if (_gameOverWaveText) _gameOverWaveText.text = $"Vague atteinte: {wave}";
+            if (_gameOverTraitText) _gameOverTraitText.text = $"Style: {dominantTrait}";
+            if (_gameOverEssenceText) _gameOverEssenceText.text = $"Essence: +{wave * 10}";
+            PlaySound(_gameOverSound);
         }
 
         public void ShowVictoryScreen(string dominantTrait)
         {
             SetAllScreensOff();
-            if (victoryScreen) victoryScreen.SetActive(true);
-            if (victoryTraitText) victoryTraitText.text = $"Style dominant: {dominantTrait}";
-            if (victoryEssenceText) victoryEssenceText.text = "Essence: +100";
+            if (_victoryScreen) _victoryScreen.SetActive(true);
+            if (_victoryTraitText) _victoryTraitText.text = $"Style dominant: {dominantTrait}";
+            if (_victoryEssenceText) _victoryEssenceText.text = "Essence: +100";
         }
 
         public void ShowUpgradeShop()
         {
             SetAllScreensOff();
-            if (upgradeShopScreen) upgradeShopScreen.SetActive(true);
+            if (_upgradeShopScreen) _upgradeShopScreen.SetActive(true);
             PopulateUpgradeShop();
         }
 
         public void UpdateUI(float health, float maxHealth, float resources, int wave)
         {
-            if (healthBar) healthBar.fillAmount = health / maxHealth;
-            if (healthText) healthText.text = $"{Mathf.CeilToInt(health)}/{Mathf.CeilToInt(maxHealth)}";
-            if (resourcesText) resourcesText.text = $"💰 {resources:F0}";
-            if (waveText) waveText.text = $"Vague {wave}";
+            if (_healthBarFill) _healthBarFill.fillAmount = health / maxHealth;
+            if (_healthText) _healthText.text = $"{Mathf.CeilToInt(health)}/{Mathf.CeilToInt(maxHealth)}";
+            if (_resourcesText) _resourcesText.text = $"💰 {resources:F0}";
+            if (_waveText) _waveText.text = $"Vague {wave}";
         }
 
         public void ShowWaveStart(int wave)
         {
-            if (waveAnnounceText) waveAnnounceText.text = $"VAGUE {wave}";
-            if (waveAnnounceAnimator) waveAnnounceAnimator.SetTrigger("Show");
-            if (waveStartSound && audioSource) audioSource.PlayOneShot(waveStartSound);
+            if (_waveAnnounceText) _waveAnnounceText.text = $"VAGUE {wave}";
+            if (_waveAnnounceAnimator) _waveAnnounceAnimator.SetTrigger("Show");
+            PlaySound(_waveStartSound);
         }
 
         public void ShowThinkingAnimation(bool show)
         {
-            if (thinkingIndicator) thinkingIndicator.SetActive(show);
+            if (_thinkingIndicator) _thinkingIndicator.SetActive(show);
         }
 
         public void ShowUnlockMessage(string message)
         {
-            if (thinkingText) thinkingText.text = message;
-        }
-
-        public void ShowUnlockCard(bool show)
-        {
-            if (unlockCard) unlockCard.SetActive(show);
+            if (_thinkingText) _thinkingText.text = message;
         }
 
         public void ShowUnlockCard(string narration, LlmUnlock unlock)
         {
-            if (unlockCard)
+            if (_unlockCard)
             {
-                unlockCard.SetActive(true);
-                if (unlockNarrationText) unlockNarrationText.text = narration;
-                if (unlockNameText) unlockNameText.text = $"✨ {unlock.unlockName} ✨";
-                if (unlockDescriptionText) unlockDescriptionText.text = unlock.unlockDescription;
-                if (unlockBehaviorText) unlockBehaviorText.text = $"🧠 {unlock.behaviorLabel}";
-
-                if (unlockAnimator) unlockAnimator.SetTrigger("Reveal");
-                if (unlockSound && audioSource) audioSource.PlayOneShot(unlockSound);
+                _unlockCard.SetActive(true);
+                if (_unlockNarrationText) _unlockNarrationText.text = narration;
+                if (_unlockNameText) _unlockNameText.text = $"✨ {unlock.unlockName} ✨";
+                if (_unlockDescriptionText) _unlockDescriptionText.text = unlock.unlockDescription;
+                if (_unlockBehaviorText) _unlockBehaviorText.text = $"🧠 {unlock.behaviorLabel}";
+                if (_unlockAnimator) _unlockAnimator.SetTrigger("Reveal");
+                PlaySound(_unlockSound);
             }
         }
 
-        public void ToggleBehaviorPanel()
+        public void ShowUnlockCard(bool show)
         {
-            if (behaviorPanel) behaviorPanel.gameObject.SetActive(!behaviorPanel.gameObject.activeSelf);
-        }
-
-        public void OnClickSound()
-        {
-            if (clickSound && audioSource) audioSource.PlayOneShot(clickSound);
+            if (_unlockCard) _unlockCard.SetActive(show);
         }
 
         public void OnStartGameClicked()
@@ -195,63 +314,81 @@ namespace ProjectLM.UI
             ShowUpgradeShop();
         }
 
+        // ======================================================================
+        // PRIVATE
+        // ======================================================================
+
         private void SetAllScreensOff()
         {
-            if (titleScreen) titleScreen.SetActive(false);
-            if (gameScreen) gameScreen.SetActive(false);
-            if (gameOverScreen) gameOverScreen.SetActive(false);
-            if (victoryScreen) victoryScreen.SetActive(false);
-            if (upgradeShopScreen) upgradeShopScreen.SetActive(false);
-        }
-
-        private void UpdateBehaviorSliders()
-        {
-            if (_observer == null || behaviorSliders == null) return;
-            var profile = _observer.GetProfile();
-            if (behaviorSliders.Length > 0) behaviorSliders[0].value = profile.Aggression;
-            if (behaviorSliders.Length > 1) behaviorSliders[1].value = profile.Caution;
-            if (behaviorSliders.Length > 2) behaviorSliders[2].value = profile.Greed;
-            if (behaviorSliders.Length > 3) behaviorSliders[3].value = profile.Curiosity;
-            if (behaviorSliders.Length > 4) behaviorSliders[4].value = profile.Patience;
-            if (behaviorSliders.Length > 5) behaviorSliders[5].value = profile.Reactivity;
-            if (behaviorSliders.Length > 6) behaviorSliders[6].value = profile.Altruism;
-            if (behaviorSliders.Length > 7) behaviorSliders[7].value = profile.RiskTolerance;
+            if (_titleScreen) _titleScreen.SetActive(false);
+            if (_gameScreen) _gameScreen.SetActive(false);
+            if (_gameOverScreen) _gameOverScreen.SetActive(false);
+            if (_victoryScreen) _victoryScreen.SetActive(false);
+            if (_upgradeShopScreen) _upgradeShopScreen.SetActive(false);
         }
 
         private void PopulateUpgradeShop()
         {
-            // Clear existing items
-            foreach (Transform child in upgradeContainer)
+            if (_upgradeContainer == null || _rogueliteManager == null) return;
+
+            // Clear
+            foreach (Transform child in _upgradeContainer)
                 Destroy(child.gameObject);
 
-            if (_rogueliteManager == null) return;
-
-            if (essenceTotalText)
-                essenceTotalText.text = $"Essence: {_rogueliteManager.Essence}";
+            if (_essenceTotalText)
+                _essenceTotalText.text = $"Essence: {_rogueliteManager.Essence}";
 
             var available = _rogueliteManager.GetAvailableUpgrades();
             foreach (var ug in available)
             {
-                var item = Instantiate(upgradeItemPrefab, upgradeContainer);
-                var texts = item.GetComponentsInChildren<TMP_Text>();
-                if (texts.Length > 0) texts[0].text = ug.name;
-                if (texts.Length > 1) texts[1].text = ug.description;
+                var item = new GameObject("UpgradeItem");
+                item.transform.SetParent(_upgradeContainer, false);
 
-                var buyBtn = item.GetComponentInChildren<Button>();
-                if (buyBtn)
+                var rt = item.AddComponent<RectTransform>();
+                rt.sizeDelta = new Vector2(700, 80);
+
+                var nameText = item.AddComponent<TextMeshProUGUI>();
+                nameText.text = ug.name;
+                nameText.fontSize = 18;
+                nameText.alignment = TextAlignmentOptions.Left;
+                nameText.color = Color.white;
+                nameText.rectTransform.anchoredPosition = new Vector2(-300, 10);
+                nameText.rectTransform.sizeDelta = new Vector2(500, 30);
+                nameText.font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+
+                var descText = item.AddComponent<TextMeshProUGUI>();
+                descText.text = ug.description;
+                descText.fontSize = 14;
+                descText.alignment = TextAlignmentOptions.Left;
+                descText.color = new Color(0.7f, 0.7f, 0.9f);
+                descText.rectTransform.anchoredPosition = new Vector2(-300, -15);
+                descText.rectTransform.sizeDelta = new Vector2(500, 25);
+                descText.font = nameText.font;
+
+                // Simple button via raycast on the item
+                var btn = item.AddComponent<Button>();
+                string capturedId = ug.id;
+                btn.onClick.AddListener(() =>
                 {
-                    string capturedId = ug.id;
-                    buyBtn.onClick.AddListener(() =>
-                    {
-                        if (_rogueliteManager.PurchaseUpgrade(capturedId))
-                        {
-                            PopulateUpgradeShop(); // Refresh
-                        }
-                    });
-                    var btnText = buyBtn.GetComponentInChildren<TMP_Text>();
-                    if (btnText) btnText.text = $"Acheter ({ug.cost} essence)";
-                }
+                    if (_rogueliteManager.PurchaseUpgrade(capturedId))
+                        PopulateUpgradeShop();
+                });
+
+                // Buy text overlay
+                var buyText = item.AddComponent<TextMeshProUGUI>();
+                buyText.text = $"Acheter ({ug.cost})";
+                buyText.fontSize = 16;
+                buyText.alignment = TextAlignmentOptions.Right;
+                buyText.color = new Color(1, 0.84f, 0);
+                buyText.rectTransform.anchoredPosition = new Vector2(300, 0);
+                buyText.rectTransform.sizeDelta = new Vector2(150, 30);
+                buyText.font = nameText.font;
             }
+        }
+
+        private void PlaySound(AudioClip clip)
+        {
+            if (clip && _audioSource) _audioSource.PlayOneShot(clip);
         }
     }
 }
